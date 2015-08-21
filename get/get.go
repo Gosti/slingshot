@@ -60,10 +60,10 @@ func getFile(dir string, port int, status chan error) {
 				if content[0] == 0 {
 					if title == "" {
 						title = string(readed)
-						readed = readed[:cap(readed)]
+						readed = readed[:0]
 					} else {
 						fileContent = readed
-						readed = readed[:cap(readed)]
+						readed = readed[:0]
 						fmt.Printf("Received => %v\n", title)
 						save_file(title, fileContent)
 						title = ""
