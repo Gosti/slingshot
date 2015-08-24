@@ -16,11 +16,18 @@ func init() {
 }
 
 func SendFile(IP string, port int, file []string) {
-	ip := net.ParseIP(IP)
+	var ip net.IP
+
+	ip = net.ParseIP(IP)
 	if ip == nil {
-		Status <- errors.New("Slingshot: Not a valid IP")
-		return
+		ips, err := net.LookupIP(IP)
+		if err != nil {
+			Status <- errors.New("Slingshot: Not a valid IP")
+			return
+		}
+		ip = ips[0]
 	}
+
 	addr := &net.TCPAddr{
 		IP:   ip,
 		Port: port,
