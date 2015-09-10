@@ -11,6 +11,16 @@ import (
 
 var Status chan error
 
+type Pellet struct {
+	FileName string
+	Content  []byte
+}
+
+type Metalic struct {
+	P  *Pellet
+	CS string
+}
+
 func init() {
 	Status = make(chan error)
 }
