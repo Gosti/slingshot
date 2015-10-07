@@ -16,16 +16,11 @@ type Pellet struct {
 	Content  []byte
 }
 
-type Metalic struct {
-	P  *Pellet
-	CS string
-}
-
 func init() {
 	Status = make(chan error)
 }
 
-func SendFile(IP string, port int, file []string) {
+func SendFile(IP string, port int, file []string, identity string) {
 	var ip net.IP
 
 	ip = net.ParseIP(IP)

@@ -10,7 +10,7 @@ import (
 	"strconv"
 )
 
-func Receive(dir string, port int) (status chan error) {
+func Receive(dir string, port int, secure bool) (status chan error) {
 	status = make(chan error)
 	fmt.Println(dir, port)
 	go getFile(dir, port, status)
