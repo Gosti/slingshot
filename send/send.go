@@ -1,26 +1,34 @@
 package send
 
 import (
-	_ "bufio"
+	"bytes"
+	"encoding/gob"
 	"errors"
-	_ "fmt"
+	"fmt"
 	"io/ioutil"
 	"net"
-	_ "strconv"
+
+	"github.com/mrgosti/rosa"
 )
 
 var Status chan error
 
-type Pellet struct {
+type pellet struct {
 	FileName string
 	Content  []byte
 }
 
-func init() {
-	Status = make(chan error)
+func (p *pellet) toBytes() ([]byte, error) {
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+	err := enc.Encode(p)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }
 
-func SendFile(IP string, port int, file []string, identity string) {
+func SendFile(IP string, port int, files []string, identity string) {
 	var ip net.IP
 
 	ip = net.ParseIP(IP)
@@ -43,24 +51,48 @@ func SendFile(IP string, port int, file []string, identity string) {
 		return
 	}
 
-	for _, v := range file {
-		content, err := ioutil.ReadFile(v)
+	for _, filename := range files {
+		content, err := ioutil.ReadFile(filename)
 
 		if err != nil {
 			Status <- err
 			return
 		}
-		conn.Write([]byte(v))
-		conn.Write(make([]byte, 1))
-		_, err = conn.Write(content)
+
+		p := &pellet{filename, content}
+
+		tosend, err := p.toBytes()
+		fmt.Println(tosend)
+		if err != nil {
+			Status <- err
+			return
+		}
+
+		if identity != "" {
+			f := rosa.SeekByName(identity)
+			if f == nil {
+				Status <- errors.New("Slingshot: Not a valid identity")
+				return
+			}
+			tosend, err = f.Encrypt(tosend)
+			if err != nil {
+				Status <- err
+				return
+			}
+		}
+
+		_, err = conn.Write(tosend)
 
 		if err != nil {
 			Status <- err
 			return
 		}
-		conn.Write(make([]byte, 1))
 	}
 
 	conn.Close()
 	Status <- nil
+}
+
+func init() {
+	Status = make(chan error)
 }

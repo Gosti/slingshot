@@ -3,17 +3,38 @@ package get
 import (
 	_ "bufio"
 	"bytes"
+	"crypto/rsa"
+	"encoding/gob"
 	"fmt"
 	"io"
 	"net"
 	"os"
 	"strconv"
+
+	"github.com/mrgosti/rosa"
 )
+
+type pellet struct {
+	FileName string
+	Content  []byte
+}
+
+func getPellet(bts []byte) (*pellet, error) {
+	var p *pellet
+
+	buf := bytes.NewBuffer(bts)
+	dec := gob.NewDecoder(buf)
+	err := dec.Decode(&p)
+	if err != nil {
+		return nil, err
+	}
+	return p, nil
+}
 
 func Receive(dir string, port int, secure bool) (status chan error) {
 	status = make(chan error)
 	fmt.Println(dir, port)
-	go getFile(dir, port, status)
+	go getFile(dir, port, secure, status)
 	return
 }
 
@@ -30,10 +51,19 @@ func save_file(title string, content []byte) {
 	}
 }
 
-func getFile(dir string, port int, status chan error) {
-	var readed []byte
-	var title string = ""
-	var fileContent []byte
+func getFile(dir string, port int, secure bool, status chan error) {
+
+	var key *rsa.PrivateKey
+
+	var err error
+
+	if secure {
+		key, err = rosa.LoadPrivateKey(rosa.PrivateKeyPath)
+		if err != nil {
+			status <- err
+			return
+		}
+	}
 
 	l, err := net.Listen("tcp", ":"+strconv.Itoa(port))
 	if err != nil {
@@ -49,26 +79,45 @@ func getFile(dir string, port int, status chan error) {
 		}
 		content := make([]byte, 1)
 		go func(c net.Conn) {
+			var readed []byte
 			defer c.Close()
 
 			for {
-				a, b := c.Read(content)
-				if a == 0 || b != nil {
-					break
-				}
-				readed = append(readed, content...)
-				if content[0] == 0 {
-					if title == "" {
-						title = string(readed)
-						readed = readed[:0]
-					} else {
-						fileContent = readed
-						readed = readed[:0]
-						fmt.Printf("Received => %v\n", title)
-						save_file(title, fileContent)
-						title = ""
+				a, _ := c.Read(content)
+
+				if a == 0 {
+					if secure {
+						readed, err = rosa.Decrypt(readed, key)
+						if err != nil {
+							status <- err
+							return
+						}
 					}
+					fmt.Println(readed)
+					p, err := getPellet(readed)
+					if err != nil {
+						status <- err
+						return
+					}
+
+					fmt.Println(p)
+					readed = make([]byte, 1)
+				} else {
+					readed = append(readed, content...)
 				}
+
+				// if content[0] == 0 {
+				// 	if title == "" {
+				// 		title = string(readed)
+				// 		readed = readed[:0]
+				// 	} else {
+				// 		fileContent = readed
+				// 		readed = readed[:0]
+				// 		fmt.Printf("Received => %v\n", title)
+				// 		save_file(title, fileContent)
+				// 		title = ""
+				// 	}
+				// }
 				content = make([]byte, 1)
 			}
 		}(conn)

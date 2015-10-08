@@ -30,8 +30,8 @@ func receiver_mode(dir string, port int, secure bool) {
 	checkErr(err)
 }
 
-func sender_mode(file []string, ip string, port int, identity string) {
-	go send.SendFile(ip, port, file, identity)
+func sender_mode(ip string, port int, files []string, identity string) {
+	go send.SendFile(ip, port, files, identity)
 	err := <-send.Status
 	checkErr(err)
 }
@@ -56,6 +56,6 @@ func main() {
 	if len(tail) == 0 {
 		receiver_mode(*dirFlag, *portFlag, *securFlag)
 	} else if len(tail) > 1 {
-		sender_mode(tail[1:], tail[0], *portFlag, *idFlag)
+		sender_mode(tail[0], *portFlag, tail[1:], *idFlag)
 	}
 }
