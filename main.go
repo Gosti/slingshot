@@ -20,7 +20,7 @@ func checkErr(err error) {
 
 func receiver_mode(dir string, port int, secure bool) {
 	if secure {
-		fmt.Println("Slingshot: Waiting file on port", port, "...")
+		fmt.Println("Slingshot secure: Waiting file on port", port, "...")
 	} else {
 		fmt.Println("Slingshot: Waiting file on port", port, "...")
 	}

@@ -85,7 +85,8 @@ func getFile(dir string, port int, secure bool, status chan error) {
 			for {
 				a, _ := c.Read(content)
 
-				if a == 0 {
+				if a == 0 && readed != nil {
+					fmt.Println(readed)
 					if secure {
 						readed, err = rosa.Decrypt(readed, key)
 						if err != nil {
@@ -93,31 +94,19 @@ func getFile(dir string, port int, secure bool, status chan error) {
 							return
 						}
 					}
-					fmt.Println(readed)
 					p, err := getPellet(readed)
 					if err != nil {
 						status <- err
 						return
 					}
 
-					fmt.Println(p)
 					readed = make([]byte, 1)
+					save_file(p.FileName, p.Content)
+					fmt.Printf("Received => %v\n", p.FileName)
+					break
 				} else {
 					readed = append(readed, content...)
 				}
-
-				// if content[0] == 0 {
-				// 	if title == "" {
-				// 		title = string(readed)
-				// 		readed = readed[:0]
-				// 	} else {
-				// 		fileContent = readed
-				// 		readed = readed[:0]
-				// 		fmt.Printf("Received => %v\n", title)
-				// 		save_file(title, fileContent)
-				// 		title = ""
-				// 	}
-				// }
 				content = make([]byte, 1)
 			}
 		}(conn)

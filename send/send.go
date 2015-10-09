@@ -29,6 +29,7 @@ func (p *pellet) toBytes() ([]byte, error) {
 }
 
 func SendFile(IP string, port int, files []string, identity string) {
+	rosa.LoadFriends(rosa.FriendListPath)
 	var ip net.IP
 
 	ip = net.ParseIP(IP)
@@ -75,6 +76,7 @@ func SendFile(IP string, port int, files []string, identity string) {
 				return
 			}
 			tosend, err = f.Encrypt(tosend)
+			fmt.Println(tosend)
 			if err != nil {
 				Status <- err
 				return
